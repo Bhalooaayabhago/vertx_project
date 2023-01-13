@@ -1,9 +1,6 @@
 package org.example;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
+import io.vertx.core.*;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -20,6 +17,7 @@ import io.vertx.mysqlclient.MySQLConnectOptions;
 import io.vertx.mysqlclient.MySQLPool;
 import io.vertx.sqlclient.*;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
 import java.util.HashMap;
@@ -60,8 +58,9 @@ public class Register extends AbstractVerticle
         });*/
         Router r=Router.router(vertx);
         wb=WebClient.create(vertx);
-        r.get("/get").handler(this::fun);
-        r.get("/search*").handler(this::hoho);
+        r.route("/get").handler(this::fun);
+        r.route("/search").handler(this::hoho);
+        r.route("/update").handler(this::updt);
         vertx.createHttpServer().requestHandler(r).listen(8080).onSuccess(ok->{log.info("Success");p.complete();}).onFailure(p::fail);
     }
     void fun(RoutingContext r)
@@ -276,6 +275,96 @@ public class Register extends AbstractVerticle
         else
             doq(val[0], val[1], r);
     }
+    void updt(RoutingContext rc)
+    {
+        log.info("hello");
+        MultiMap  mp=rc.queryParams();
+        ArrayList<String> qParams_name=new ArrayList<>();
+        ArrayList<String> qParams_val=new ArrayList<>();
+        //HashMap<String,Integer> qParams_name_mapping=new HashMap<>();
+        String imp[]=new String[4];
+        imp[0]=mp.get("lat");
+        imp[1]=mp.get("lon");
+        imp[2]=mp.get("city");
+        imp[3]=mp.get("zip");
+        int gogo=0;
+        for(int i=0;i<4;i++)
+        {
+            if(imp[i]!=null)
+                gogo++;
+        }
+        if((gogo<2||gogo>3)||(imp[0]==null||imp[1]==null))
+            rc.response().putHeader("Content-type","text/plain").end("incorrect parameters");
+        if(imp[2]!=null)
+        {
+            client.preparedQuery("INSERT IGNORE INTO city(name,lat,lon) Values (?,?,?)").execute(Tuple.of(imp[2],imp[0],imp[1]),ar->{
+                if(ar.failed())
+                ar.cause().printStackTrace();
+                else
+                    douq(rc,mp,qParams_name,qParams_val,Double.parseDouble(imp[0]),Double.parseDouble(imp[1]));
+            });
+
+        }
+        else if(imp[3]!=null)
+        {
+            client.preparedQuery("INSERT IGNORE INTO zdata(zip,lat,lon) Values (?,?,?)").execute(Tuple.of(imp[3],imp[0],imp[1]),ar->{
+                if(ar.failed())
+                    ar.cause().printStackTrace();
+                else {
+                    douq(rc,mp,qParams_name,qParams_val,Double.parseDouble(imp[0]),Double.parseDouble(imp[1]));
+
+                }
+            });
+        }
+        else
+            douq(rc,mp,qParams_name,qParams_val,Double.parseDouble(imp[0]),Double.parseDouble(imp[1]));
+    }
+    void douq(RoutingContext rc,MultiMap mp,ArrayList<String> qParams_name,ArrayList<String> qParams_val,double lat,double lon)
+    {
+        int cnt=0;
+        for(String ss:mp.names())
+        {
+            qParams_name.add(ss);
+            //qParams_name_mapping.put(ss,cnt);
+            qParams_val.add(mp.get(ss));
+            // cnt++;
+        }
+        String query_start,query_end;
+        query_start="update Data ";
+        query_end="where lat=? and lon=?";
+        cnt=0;
+        for(int i=0;i<qParams_name.size();i++)
+        {
+            String curr=qParams_name.get(i);
+            if(curr.equals("lat")||curr.equals("lon")||curr.equals("city")||curr.equals("zip"))
+                continue;
+                query_start+=(cnt==0)?"set ":",";
+            query_start+=(qParams_name.get(i)+"="+qParams_val.get(i));
+            //log.info(query_start);
+            cnt++;
+        }
+        log.info(cnt);
+        if(cnt==0)
+        {
+            rc.response().putHeader("Content-Type","text/plain").end("Update Successful");
+            return;
+        }
+        query_start+=" ";
+        query_start+=query_end;
+        log.info(query_start);
+        client.preparedQuery(query_start).execute(Tuple.of(lat,lon),ar->{
+            if(ar.failed())
+            {
+                rc.response().putHeader("Content-type","text/plain").end("Error Could not update");
+                ar.cause().printStackTrace();
+            }
+            else
+            {
+                rc.response().putHeader("Content-type","text/plain").end("Update Successful");
+            }
+        });
+    }
+
     void doq(double lat,double lon,RoutingContext r)
     {
         client.preparedQuery("SELECT * FROM Data where lat=? AND lon=?").execute(Tuple.of(lat,lon),res->{
