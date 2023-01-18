@@ -1,13 +1,10 @@
 package org.example;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -15,7 +12,6 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.codec.BodyCodec;
-import io.vertx.sqlclient.Tuple;
 
 public class Controller extends AbstractVerticle
 {
@@ -23,11 +19,11 @@ public class Controller extends AbstractVerticle
     private WebClient wb;
     HttpRequest<JsonObject> httpRequest;
     model mdl;
-    View vu;
+    view vu;
     public void start(Promise<Void> p)
     {
         mdl=new model();
-        View vu=new View();
+        view vu=new view();
         Router r=Router.router(vertx);
         wb=WebClient.create(vertx);
         r.route("/get").handler(this::gt);
