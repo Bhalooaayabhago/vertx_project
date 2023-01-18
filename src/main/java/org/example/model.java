@@ -1,3 +1,4 @@
+package org.example;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.mysqlclient.MySQLConnectOptions;
@@ -7,13 +8,13 @@ import org.example.Register;
 
 import java.util.ArrayList;
 
-public class Model
+public class model
 {
     private static final Logger log=  LoggerFactory.getLogger(Register.class);
     MySQLConnectOptions connectOptions;
     PoolOptions poolOptions;
     SqlClient client;
-    Model()
+    model()
     {
         connectOptions = new MySQLConnectOptions()
                 .setPort(3306).setHost("127.0.0.1")
@@ -147,7 +148,7 @@ public class Model
         });
         return wdata;
     }
-    void searchByCity(String city)
+    Weather_data searchByCity(String city)
     {
         Weather_data wdata = new Weather_data();
         client.preparedQuery("SELECT * FROM city where zip=?").execute(Tuple.of(city), ar -> {
@@ -172,6 +173,7 @@ public class Model
                 wdata.copy(e);
             }
         });
+        return wdata;
      }
     public void update(Weather_data wdata,ArrayList<String> paraNames)
     {

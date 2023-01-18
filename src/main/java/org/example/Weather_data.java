@@ -1,3 +1,4 @@
+package org.example;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
