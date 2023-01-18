@@ -19,11 +19,11 @@ public class Controller extends AbstractVerticle
     private WebClient wb;
     HttpRequest<JsonObject> httpRequest;
     model mdl;
-    view vu;
+    VU vu;
     public void start(Promise<Void> p)
     {
         mdl=new model();
-        view vu=new view();
+        VU vu=new VU();
         Router r=Router.router(vertx);
         wb=WebClient.create(vertx);
         r.route("/get").handler(this::gt);
