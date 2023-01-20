@@ -26,7 +26,7 @@ public class model
         connectOptions = new MySQLConnectOptions()
                 .setPort(3306).setHost("127.0.0.1")
                 .setDatabase("weather_data")
-                .setUser("root").setPassword("crystalkaran1A@");
+                .setUser("root").setPassword(System.getenv("dbpass"));
         log.info(System.getenv("dbpass"));
         poolOptions = new PoolOptions().setMaxSize(10);
         client = MySQLPool.client(vertx,connectOptions, poolOptions);
@@ -234,6 +234,117 @@ public class model
         });
         //return wdata;
      }
+     void searchByCityRange(String city,RoutingContext rc,double range)
+     {
+         //Weather_data wdata = new Weather_data();
+         client.preparedQuery("SELECT * FROM city where name=?").execute(Tuple.of(city), ar -> {
+             if (ar.failed()) {
+                 ar.cause().printStackTrace();
+                 log.info("search failed");
+                 JsonObject reply;
+                   reply = new JsonObject("\"Error\":401");
+                 rc.response().putHeader("Content-Type","application/json").end("{\"Error\":401}");
+             }
+             else {
+                 String ans;
+                 RowSet<Row> rx = ar.result();
+                 log.info(rx.size());
+                 double lat=-1000,lon=-1000;
+                 for (Row rr : rx)
+                 {
+                     lat= rr.getDouble("lat");
+                     lon = rr.getDouble("lon");
+                 }
+                 log.info(lat + " " + lon);
+                 searchRange(lat,lon,rc,range);
+                 //wdata.copy(e);
+             }
+         });
+         //return wdata;
+      }
+       void searchByZipRange(String zip,RoutingContext rc,double range)
+       {
+            //Weather_data wdata = new Weather_data();
+           client.preparedQuery("SELECT * FROM zdata where zip=?").execute(Tuple.of(zip), ar -> {
+
+               if (ar.failed()) {
+                   ar.cause().printStackTrace();
+                   log.info("search failed");
+                   rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":401}");
+               }
+               else{
+                   String ans;
+                   RowSet<Row> rx = ar.result();
+                   log.info(rx.size());
+                   double lat = -1000, lon = -1000;
+                   for (Row rr : rx) {
+                       lat = rr.getDouble("lat");
+                       lon = rr.getDouble("lon");
+                   }
+                   log.info(lat + " " + lon);
+                   searchRange(lat, lon, rc,range);
+               }
+
+           });
+       }
+       void searchRange(double lat, double lon, RoutingContext rc,double range)
+       {
+           //Weather_data wdata=new Weather_data();
+           log.info(lat+" "+lon);
+           client.preparedQuery("SELECT * FROM Data where lat=? AND lon=?").execute(Tuple.of(lat,lon),
+                   res->{
+               if(res.failed()) {
+                   res.cause().printStackTrace();
+                   log.info("Search failed");
+                   JsonObject reply;
+                   reply = new JsonObject("{Error:401}");
+                     rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":401}");
+               }
+               else
+               {
+                   RowSet<Row> rows=res.result();
+                   if(rows.size()==0) {
+                       log.info("No such record!");
+                        rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":101}");
+                  }
+                   Weather_data wdata=new Weather_data();
+                   for(Row xx:rows)
+                   {
+                       log.info("Record found");
+                       for(int i=0;i<=27;i++)
+                       {
+                           String curr=xx.getColumnName(i);
+                           log.info(curr);
+                           if(i>=3&&i<=6) {
+                               wdata.set(curr,xx.getString(curr));
+                              log.info(xx.getString(curr));
+                               continue;
+                           }
+                           if(i>=24&&i<=27) {
+                               wdata.set(curr,xx.getInteger(curr));
+                              log.info(xx.getInteger(curr));
+                               continue;
+                           }
+                           wdata.set(curr,xx.getDouble(curr));
+                          log.info(xx.getDouble(curr));
+                       }
+                       Field flds[]=Weather_data.class.getDeclaredFields();
+                       for(Field f:flds)
+                       {
+                           log.info(f.getName()+" "+wdata.get(f.getName()));
+                       }
+                   }
+                   ObjectMapper mapper=new ObjectMapper();
+                   JsonObject reply;
+                   try {
+                        reply=new JsonObject(mapper.writeValueAsString(wdata));
+                   } catch (JsonProcessingException e) {
+                       throw new RuntimeException(e);
+                   }
+                   rc.response().putHeader("Content-Type","application/json").end(reply.toString());
+               }
+           });
+       }
     public void update(Weather_data wdata,ArrayList<String> paraNames)
     {
         //log.info("update begin");
