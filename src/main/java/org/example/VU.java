@@ -3,6 +3,8 @@ package org.example;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.MultiMap;
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
@@ -11,7 +13,7 @@ import java.util.ArrayList;
 
 public class VU
 {
-
+    private static final Logger log=  LoggerFactory.getLogger(Register.class);
     public void sendQuery(String qPara[], RoutingContext r,HttpRequest<JsonObject> httpRequest)
     {
         int flag=0;
@@ -42,52 +44,28 @@ public class VU
             mainkey="1";
         httpRequest.addQueryParam("appid",mainkey);
     }
-    public JsonObject search(String qPara[],model mdl)
+    public void search(String qPara[],model mdl,RoutingContext r)
     {
-        JsonObject replyToUser;
-        ObjectMapper mapper=new ObjectMapper();
-        if(qPara[3]!=null) {
-            try {
-                replyToUser=new JsonObject(mapper.writeValueAsString(mdl.searchByCity(qPara[3])));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        else if(qPara[4]!=null) {
-            try {
-                replyToUser=new JsonObject(mapper.writeValueAsString(mdl.searchByCity(qPara[4])));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        if(qPara[3]!=null)
+              mdl.searchByCity(qPara[3],r);
+        else if(qPara[4]!=null)
+            mdl.searchByZip(qPara[4],r);
         else
-        {
-            try {
-                replyToUser=new JsonObject(mapper.writeValueAsString( mdl.search(Double.parseDouble(qPara[1]),Double.parseDouble(qPara[2]))));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-       return replyToUser;
+            mdl.search(Double.parseDouble(qPara[1]),Double.parseDouble(qPara[2]),r);
     }
     public void update(String params[], model mdl, MultiMap mp)
     {
         ArrayList<String> lis=new ArrayList<>();
-        lis.add("lat");
-        lis.add("lon");
         Weather_data wdata=new Weather_data();
-        for(String key:mp.names())
-            wdata.set(key,mp.get(key));
+        for(String key:mp.names()) {
+            wdata.nset(key, mp.get(key));
+            log.info(key+" "+wdata.get(key));
+            lis.add(key);
+        }
         if(params[3]!=null)
-        {
-            lis.add("city");
             mdl.updateCity(wdata,lis,params[3]);
-        }
         else if(params[4]!=null)
-        {
-            lis.add("zip");
             mdl.updateZip(wdata,lis,params[4]);
-        }
         else
         mdl.update(wdata,lis);
     }

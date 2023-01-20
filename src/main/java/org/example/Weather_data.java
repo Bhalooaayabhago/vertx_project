@@ -4,8 +4,9 @@ import io.vertx.core.json.JsonObject;
 
 public class Weather_data
 {
-    String weather_icon,weather_description,weather_main,base;
-    private double lat,lon,weather_id,temp,feel_like,temp_max,temp_min,sea_level
+    private double lat,lon,weather_id;
+    private String weather_icon,weather_description,weather_main,base;
+    private double temp,feel_like,temp_max,temp_min,sea_level
             ,grnd_level,humidity,pressure,visibility,wind_speed,wind_deg,wind_gust
             ,clouds_all,snow_1h,snow_3h,rain_1h,rain_3h;
     int sunrise,sunset,timezone, dt;
@@ -306,48 +307,77 @@ public class Weather_data
 
         dt =job.getInteger("dt");
     }
+    public void nset(String s,String value)
+    {
+        if(s.equals("weather_icon")||s.equals("weather_description")||s.equals("weather_main")||s.equals("base"))
+            set(s,value);
+        else if(s.equals("sunrise")||s.equals("sunset")||s.equals("dt")||s.equals("timzone"))
+            set(s,Integer.parseInt(value));
+        else
+            set(s,Double.parseDouble(value));
+    }
+
     public void set(String s,double value)
     {
     switch(s)
     {
         case "lat":
              lat=value;
+             return;
         case "lon":
              lon=value;
+             return;
         case "weather_id":
              weather_id=value;
+             return;
         case "temp":
              temp=value;
+             return;
         case "feel_like":
              feel_like=value;
+             return;
         case "temp_min":
              temp_min=value;
+             return;
         case "temp_max":
              temp_max=value;
+             return;
         case "sea_level":
              sea_level=value;
+             return;
         case "grnd_level":
              grnd_level=value;
+             return;
         case "humidity":
              humidity=value;
+             return;
         case "pressure":
              pressure=value;
+             return;
         case "visibility":
              visibility=value;
+             return;
         case "wind_speed":
              wind_speed=value;
+             return;
         case "wind_deg":
              wind_deg=value;
+             return;
         case "wind_gust":
              wind_gust=value;
+             return;
         case "clouds_all":
              clouds_all=value;
+             return;
         case "rain_1h":
              rain_1h=value;
+             return;
         case "rain_3h":
              rain_3h=value;
+             return;
         case "snow_1h":
              snow_1h=value;
+             return;
         case "snow_3h":
              snow_3h=value;
     }
@@ -358,13 +388,15 @@ public class Weather_data
         {
             case "weather_icon":
                  weather_icon=value;
+                 return;
             case "weather_description":
                  weather_description=value;
+                 return;
             case "weather_main":
                  weather_main=value;
+                 return;
             case "base":
                  base=value;
-
         }
     }
     public void set(String s,int value)
@@ -373,11 +405,14 @@ public class Weather_data
         {
             case "sunrise":
                  sunrise=value;
+                 return;
             case "sunset":
                  sunset=value;
+                 return;
             case "timezone":
                  timezone=value;
-            case "date":
+                 return;
+            case "dt":
                  dt =value;
         }
     }
@@ -487,7 +522,7 @@ public class Weather_data
                 return sunset;
             case "timezone":
                 return timezone;
-            case "date":
+            case "dt":
                 return dt;
         }
         return -1000;

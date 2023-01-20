@@ -14,7 +14,7 @@ public class App extends AbstractVerticle
         //firstVerticle ff=new firstVerticle();
         //ff.start();
         Vertx vertx =Vertx.vertx();
-        vertx.deployVerticle(new Register());
+        vertx.deployVerticle(new Controller());
         //vertx.deployVerticle(new Req());
     }
 

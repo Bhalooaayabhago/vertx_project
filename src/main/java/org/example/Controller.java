@@ -22,8 +22,8 @@ public class Controller extends AbstractVerticle
     VU vu;
     public void start(Promise<Void> p)
     {
-        mdl=new model();
-        VU vu=new VU();
+        mdl=new model(vertx);
+        vu=new VU();
         Router r=Router.router(vertx);
         wb=WebClient.create(vertx);
         r.route("/get").handler(this::gt);
@@ -56,7 +56,8 @@ public class Controller extends AbstractVerticle
         vu.sendQuery(qPara,r,httpRequest);
         Weather_data responseWdata=new Weather_data();
         httpRequest.send(reply-> {
-            if (reply.succeeded()) {
+            if (reply.succeeded())
+            {
                 r.response().putHeader("Content-Type", "appliaction/json").end(reply.result().body().toString());
                 JsonObject response = reply.result().body();
                 responseWdata.extractFromJson(response);
@@ -66,7 +67,7 @@ public class Controller extends AbstractVerticle
                 if (qPara[4]!=null)
                     mdl.saveZip(qPara[4], responseWdata.getLat(), responseWdata.getLon());
             } else {
-                r.response().putHeader("Content-Type", "appliaction/json").end("Could not retrieve parameter value incorrect");
+                r.response().putHeader("Content-Type", "appliaction/json").end("Could not retrieve parameter value incorrect/not connected to internet");
             }
         });
     }
@@ -83,9 +84,7 @@ public class Controller extends AbstractVerticle
         boolean fail3=(size==2)&&(qPara[1]==null||qPara[2]==null);
         if(fail1||fail2||fail3)
             r.response().putHeader("Content-type","application/json").end("Error in Parameters");
-        JsonObject replyToUser;
-        replyToUser=vu.search(qPara,mdl);
-        r.response().putHeader("Content-type","application/json").end(replyToUser.toString());
+       vu.search(qPara,mdl,r);
     }
     public void updt(RoutingContext r)
     {
@@ -103,6 +102,10 @@ public class Controller extends AbstractVerticle
         if((cnt_null<2||cnt_null>4)||(qPara[0]==null||qPara[1]==null))
             r.response().putHeader("Content-type","application/json").end("incorrect parameters");
         MultiMap mp=r.queryParams();
+        for(String s:mp.names())
+        {
+            log.info(s+" "+mp.get(s));
+        }
         vu.update(qPara,mdl,mp);
     }
 

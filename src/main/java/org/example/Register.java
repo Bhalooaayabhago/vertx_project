@@ -111,78 +111,116 @@ public class Register extends AbstractVerticle
                 int sr=0,ss=0;
                 String weather_main = null,weather_description = null,weather_icon = null;
                 JsonObject coord=job.getJsonObject("coord");
+                ArrayList<String> all_data=new ArrayList<>();
                 if(coord!=null) {
                      latti = coord.getDouble("lat");
+                     all_data.add(latti+"");
                      longi = coord.getDouble("lon");
+                    all_data.add(longi+"");
                 }
 
                 JsonArray weather=job.getJsonArray("weather");
                 if(weather!=null) {
                     JsonObject mw = weather.getJsonObject(0);
                     weather_id = mw.getDouble("id");
+                    all_data.add(weather_id+"");
                     weather_main = mw.getString("main");
+                    all_data.add(weather_main+"");
                     weather_description = mw.getString("description");
+                    all_data.add(weather_description+"");
                     weather_icon = mw.getString("icon");
+                    all_data.add(weather_icon+"");
                 }
 
                 String base=job.getString("base");
+                all_data.add(base+"");
 
                 JsonObject Main=job.getJsonObject("main");
                 if(Main!=null) {
                      temp = Main.getDouble("temp");
+                     all_data.add(temp+"");
                      feels_like = Main.getDouble("feels_like");
+                     all_data.add(feels_like+"");
                      temp_min = Main.getDouble("temp_min");
+                     all_data.add(temp_min+"");
                      temp_max = Main.getDouble("temp_max");
+                     all_data.add(temp_max+"");
                      pressure = Main.getDouble("pressure");
+                     all_data.add(pressure+"");
                      humidity = Main.getDouble("humidity");
-                     if(Main.getDouble("sea_level")!=null)
-                     sea_level = Main.getDouble("sea_level");
-                     if(Main.getDouble("grnd_level")!=null)
-                     grnd_level = Main.getDouble("grnd_level");
+                     all_data.add(humidity+"");
+                     if(Main.getDouble("sea_level")!=null) {
+                         sea_level = Main.getDouble("sea_level");
+                         all_data.add(sea_level + "");
+                     }
+                     if(Main.getDouble("grnd_level")!=null) {
+                         grnd_level = Main.getDouble("grnd_level");
+                         all_data.add(grnd_level + "");
+                     }
                 }
 
                 double visi=job.getDouble("visibility");
+                all_data.add(visi+"");
 
                 JsonObject wind=job.getJsonObject("wind");
                 if(wind!=null) {
-                    if(wind.getDouble("speed")!=null)
-                     speed = wind.getDouble("speed");
-                    if(wind.getDouble("deg")!=null)
-                     deg = wind.getDouble("deg");
-                    if(wind.getDouble("gust")!=null)
-                     gust = wind.getDouble("gust");
+                    if(wind.getDouble("speed")!=null) {
+                        speed = wind.getDouble("speed");
+                        all_data.add(speed + "");
+                    }
+                    if(wind.getDouble("deg")!=null){
+                        deg = wind.getDouble("deg");
+                        all_data.add(deg+"");
+                    }
+
+                    if(wind.getDouble("gust")!=null) {
+                        gust = wind.getDouble("gust");
+                        all_data.add(gust + "");
+                    }
+                }
+
+                JsonObject clouds=job.getJsonObject("clouds");
+                if(clouds!=null) {
+                    all = clouds.getDouble("all");
+                    all_data.add(all+"");
                 }
 
                 JsonObject rain=job.getJsonObject("rain");
                 if(rain!=null) {
                      r1h = rain.getDouble("1h");
                      r3h = rain.getDouble("3h");
+                     all_data.add(r1h+"");
+                     all_data.add(r3h+"");
                 }
 
                 JsonObject snow=job.getJsonObject("snow");
                 if(snow!=null) {
                      s1h = snow.getDouble("1h");
                      s3h = snow.getDouble("3h");
+                     all_data.add(s1h+"");
+                     all_data.add(s3h+"");
                 }
 
-                JsonObject clouds=job.getJsonObject("clouds");
-                if(clouds!=null) {
-                     all = clouds.getDouble("all");
-                }
 
-                int date=job.getInteger("dt");
 
                 JsonObject sys=job.getJsonObject("sys");
                 if(sys!=null) {
                      sr = sys.getInteger("sunrise");
                      ss = sys.getInteger("sunset");
+                     all_data.add(sr+"");
+                     all_data.add(ss+"");
                 }
+
                 int timezone=job.getInteger("timezone");
+
+                int date=job.getInteger("dt");
+                all_data.add(timezone+"");
+                all_data.add(date+"");
                 client.preparedQuery("INSERT IGNORE INTO " +
                                 "Data(lon,lat,weather_id,weather_main,weather_description," +
                                 "weather_icon,base,temp,feel_like,temp_min,temp_max," +
                                 "pressure,humidity,sea_level,grnd_level,visibility,wind_speed,wind_deg,wind_gust" +
-                                ",clouds_all,snow_1h,rain_1h,rain_3h,snow_3h,sunrise,sunset,timezone,dt) VALUES (" +
+                                ",clouds_all,rain_1h,rain_3h,snow_1h,snow_3h,sunrise,sunset,timezone,dt) VALUES (" +
                                 "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);").execute(Tuple.of(
                                         longi,latti,weather_id,weather_main,weather_description,weather_icon,base,temp,feels_like,temp_min,temp_max,
                                        pressure,humidity,sea_level,grnd_level,visi,speed,deg,gust,all,s1h,r1h,r3h,s3h,sr,ss,timezone,date),ar->{
