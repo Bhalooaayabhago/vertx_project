@@ -53,11 +53,22 @@ public class VU
         else
             mdl.search(Double.parseDouble(qPara[1]),Double.parseDouble(qPara[2]),r);
     }
+    public void search(String qPara[],model mdl,RoutingContext r,double range)
+    {
+        if(qPara[3]!=null)
+            mdl.searchByCity(qPara[3],r,range);
+        else if(qPara[4]!=null)
+            mdl.searchByZip(qPara[4],r,range);
+        else
+            mdl.search(Double.parseDouble(qPara[1]),Double.parseDouble(qPara[2]),r,range);
+    }
+
     public void update(String params[], model mdl, MultiMap mp)
     {
         ArrayList<String> lis=new ArrayList<>();
         Weather_data wdata=new Weather_data();
-        for(String key:mp.names()) {
+        for(String key:mp.names())
+        {
             wdata.nset(key, mp.get(key));
             log.info(key+" "+wdata.get(key));
             lis.add(key);

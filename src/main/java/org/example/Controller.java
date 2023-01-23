@@ -33,7 +33,7 @@ public class Controller extends AbstractVerticle
     }
     public void gt(RoutingContext r)
     {
-        log.info("Processing");
+        log.info("Processing get");
         httpRequest =wb.get(443, "api.openweathermap.org", "/data/2.5/weather") // (2)
                 .ssl(true)  // (3)
                 .putHeader("Accept", "application/json")  // (4)
@@ -73,39 +73,47 @@ public class Controller extends AbstractVerticle
     }
     public void srch(RoutingContext r)
     {
+        log.info("Processing search");
         String qPara[]=new String[5];
         qPara[1]=r.queryParams().get("lat");
         qPara[2]=r.queryParams().get("lon");
         qPara[3]=r.queryParams().get("city");
         qPara[4]=r.queryParams().get("zip");
-        int size=r.queryParams().size();
+        int size=0;
+        for(int i=1;i<=4;i++)
+        {
+            if(qPara[i]==null)
+                size++;
+        }
         boolean fail1=(size!=1)&&(size!=2);
         boolean fail2=(size==1)&&(qPara[3]==null&&qPara[4]==null);
         boolean fail3=(size==2)&&(qPara[1]==null||qPara[2]==null);
         if(fail1||fail2||fail3)
             r.response().putHeader("Content-type","application/json").end("Error in Parameters");
+        log.info(r.queryParams().get("range"));
+        if(r.queryParams().get("range")==null)
        vu.search(qPara,mdl,r);
+        else
+            vu.search(qPara,mdl,r,Double.parseDouble(r.queryParams().get("range")));
     }
     public void updt(RoutingContext r)
     {
+        log.info("Processing update");
         String qPara[]=new String[5];
         qPara[1]=r.queryParams().get("lat");
         qPara[2]=r.queryParams().get("lon");
         qPara[3]=r.queryParams().get("city");
         qPara[4]=r.queryParams().get("zip");
-        int cnt_null=0;
-        for(int i=1;i<=4;i++)
+        if(qPara[1]==null||qPara[2]==null)
         {
-            if(qPara[i]!=null)
-                cnt_null++;
+                r.response().putHeader("Content-type", "application/json").end("incorrect parameters");
+                return;
         }
-        if((cnt_null<2||cnt_null>4)||(qPara[0]==null||qPara[1]==null))
-            r.response().putHeader("Content-type","application/json").end("incorrect parameters");
         MultiMap mp=r.queryParams();
-        for(String s:mp.names())
+        /*for(String s:mp.names())
         {
             log.info(s+" "+mp.get(s));
-        }
+        }*/
         vu.update(qPara,mdl,mp);
     }
 

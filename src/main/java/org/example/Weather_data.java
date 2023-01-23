@@ -2,6 +2,9 @@ package org.example;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import java.lang.reflect.Field;
+import java.util.TreeSet;
+
 public class Weather_data
 {
     private double lat,lon,weather_id;
@@ -309,11 +312,16 @@ public class Weather_data
     }
     public void nset(String s,String value)
     {
+        Field flds[]=Weather_data.class.getDeclaredFields();
+        TreeSet<String> fieldSet=new TreeSet<>();
+        for(Field f:flds)
+            fieldSet.add(f.getName());
         if(s.equals("weather_icon")||s.equals("weather_description")||s.equals("weather_main")||s.equals("base"))
             set(s,value);
         else if(s.equals("sunrise")||s.equals("sunset")||s.equals("dt")||s.equals("timzone"))
             set(s,Integer.parseInt(value));
         else
+            if(fieldSet.contains(s))
             set(s,Double.parseDouble(value));
     }
 

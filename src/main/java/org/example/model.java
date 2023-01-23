@@ -142,6 +142,7 @@ public class model
                 if(rows.size()==0) {
                     log.info("No such record!");
                      rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":101}");
+                     return;
                }
                 Weather_data wdata=new Weather_data();
                 for(Row xx:rows)
@@ -158,17 +159,17 @@ public class model
                         }
                         if(i>=24&&i<=27) {
                             wdata.set(curr,xx.getInteger(curr));
-                           log.info(xx.getInteger(curr));
+                           //log.info(xx.getInteger(curr));
                             continue;
                         }
                         wdata.set(curr,xx.getDouble(curr));
-                       log.info(xx.getDouble(curr));
+                       //log.info(xx.getDouble(curr));
                     }
-                    Field flds[]=Weather_data.class.getDeclaredFields();
+                   /* Field flds[]=Weather_data.class.getDeclaredFields();
                     for(Field f:flds)
                     {
                         log.info(f.getName()+" "+wdata.get(f.getName()));
-                    }
+                    }*/
                 }
                 ObjectMapper mapper=new ObjectMapper();
                 JsonObject reply;
@@ -234,7 +235,7 @@ public class model
         });
         //return wdata;
      }
-     void searchByCityRange(String city,RoutingContext rc,double range)
+     void searchByCity(String city,RoutingContext rc,double range)
      {
          //Weather_data wdata = new Weather_data();
          client.preparedQuery("SELECT * FROM city where name=?").execute(Tuple.of(city), ar -> {
@@ -256,13 +257,13 @@ public class model
                      lon = rr.getDouble("lon");
                  }
                  log.info(lat + " " + lon);
-                 searchRange(lat,lon,rc,range);
+                 search(lat,lon,rc,range);
                  //wdata.copy(e);
              }
          });
          //return wdata;
       }
-       void searchByZipRange(String zip,RoutingContext rc,double range)
+       void searchByZip(String zip,RoutingContext rc,double range)
        {
             //Weather_data wdata = new Weather_data();
            client.preparedQuery("SELECT * FROM zdata where zip=?").execute(Tuple.of(zip), ar -> {
@@ -282,16 +283,16 @@ public class model
                        lon = rr.getDouble("lon");
                    }
                    log.info(lat + " " + lon);
-                   searchRange(lat, lon, rc,range);
+                   search(lat, lon, rc,range);
                }
 
            });
        }
-       void searchRange(double lat, double lon, RoutingContext rc,double range)
+       void search(double lat, double lon, RoutingContext rc,double range)
        {
            //Weather_data wdata=new Weather_data();
            log.info(lat+" "+lon);
-           client.preparedQuery("SELECT * FROM Data where lat=? AND lon=?").execute(Tuple.of(lat,lon),
+           client.preparedQuery("SELECT * FROM Data where 13462*asin(sqrt(power(sin(((lat-?)*0.01745329251)/2),2)+power(sin(((lon-?)*0.01745329251)/2),2)*cos(lat)*cos(?))) <= ?").execute(Tuple.of(lat,lon,lat,range),
                    res->{
                if(res.failed()) {
                    res.cause().printStackTrace();
@@ -306,6 +307,7 @@ public class model
                    if(rows.size()==0) {
                        log.info("No such record!");
                         rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":101}");
+                        return;
                   }
                    Weather_data wdata=new Weather_data();
                    for(Row xx:rows)
@@ -329,10 +331,10 @@ public class model
                           log.info(xx.getDouble(curr));
                        }
                        Field flds[]=Weather_data.class.getDeclaredFields();
-                       for(Field f:flds)
+                       /*for(Field f:flds)
                        {
                            log.info(f.getName()+" "+wdata.get(f.getName()));
-                       }
+                       } */
                    }
                    ObjectMapper mapper=new ObjectMapper();
                    JsonObject reply;
