@@ -59,7 +59,7 @@ public class model
                    log.info(f.getName());
                    lis.add(f.getName());
                }
-                 update(parameter_values,lis);
+                 update(parameter_values,lis,null);
                }
             else {
                 log.info("Save weather data failed");
@@ -133,7 +133,7 @@ public class model
                 res.cause().printStackTrace();
                 log.info("Search failed");
                 JsonObject reply;
-                reply = new JsonObject("{Error:401}");
+                reply = new JsonObject("{\"Error\":401}");
                   rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":401}");
             }
             else
@@ -151,7 +151,7 @@ public class model
                     for(int i=0;i<=27;i++)
                     {
                         String curr=xx.getColumnName(i);
-                        log.info(curr);
+                        //log.info(curr);
                         if(i>=3&&i<=6) {
                             wdata.set(curr,xx.getString(curr));
                            log.info(xx.getString(curr));
@@ -175,10 +175,11 @@ public class model
                 JsonObject reply;
                 try {
                      reply=new JsonObject(mapper.writeValueAsString(wdata));
+                     rc.response().putHeader("Content-Type", "application/json").end(reply.toString());
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }
-                rc.response().putHeader("Content-Type","application/json").end(reply.toString());
+
             }
         });
     }
@@ -347,7 +348,7 @@ public class model
                }
            });
        }
-    public void update(Weather_data wdata,ArrayList<String> paraNames)
+    public void update(Weather_data wdata,ArrayList<String> paraNames,RoutingContext rc)
     {
         //log.info("update begin");
         for(String s:paraNames)
@@ -372,7 +373,10 @@ public class model
         }
         if(cnt==0)
         {
+            if(rc==null)
             log.info("Update successful");
+            else
+                rc.response().putHeader("Content-Type","application/json").end("{\"SUCCESS\":\"UPDATED\"}");
             return;
         }
         query_start+=" ";
@@ -381,34 +385,94 @@ public class model
         client.preparedQuery(query_start).execute(Tuple.of(wdata.getLat(),wdata.getLon()),ar->{
             if(ar.failed())
             {
-                log.info("Update failed");
+                 if(rc==null)
+                 log.info("Update successful");
+                 else
+                     rc.response().putHeader("Content-Type","application/json").end("{\"error\":\"UPDATE failed\"}");
+
+
+
+
                 ar.cause().printStackTrace();
             }
             else
-                log.info("update successful");
+            {
+                 if(rc==null)
+                 log.info("Update successful");
+                 else
+                     rc.response().putHeader("Content-Type","application/json").end("{\"SUCCESS\":\"UPDATED\"}");
+             }
         });
     }
-    public void updateCity(Weather_data wdata,ArrayList<String> paraNames,String city)
+    public void updateCity(Weather_data wdata,ArrayList<String> paraNames,String city,RoutingContext rc)
     {
-        client.preparedQuery("INSERT IGNORE INTO city(name,lat,lon) Values (?,?,?)").execute(Tuple.of(city,wdata.getLat(),wdata.getLon()),ar->{
+        log.info("update city");
+        client.preparedQuery("SELECT * from city where name=?").execute(Tuple.of(city),ar->{
             if(ar.failed()) {
                 log.info("update city failed");
                 ar.cause().printStackTrace();
             }
             else
-                update(wdata,paraNames);
+            {
+                if(ar.result().size()==0)
+                {
+
+                    client.preparedQuery("INSERT IGNORE INTO city(name,lat,lon) Values (?,?,?)").execute(Tuple.of(city,wdata.getLat(),wdata.getLon()),arr->{
+                        if(arr.failed()) {
+                            log.info("update city failed");
+                            arr.cause().printStackTrace();
+                        }
+                        else {
+                            //log.info("check");
+                            update(wdata, paraNames,rc);
+                        }
+                    });
+                }
+                else
+                {
+                         for(Row rws:ar.result())
+                         {
+                             wdata.setLat(rws.getDouble("lat"));
+                              wdata.setLon(rws.getDouble("lon"));
+                         }
+                         update(wdata,paraNames,rc);
+                }
+            }
         });
-    }
-    public void updateZip(Weather_data wdata,ArrayList<String> paraNames,String zip)
+     }
+    public void updateZip(Weather_data wdata,ArrayList<String> paraNames,String zip,RoutingContext rc)
     {
-        client.preparedQuery("INSERT IGNORE INTO zdata(name,lat,lon) Values (?,?,?)").execute(Tuple.of(zip,wdata.getLat(),wdata.getLon()),ar->{
+        client.preparedQuery("select * from zdata where zip=?").execute(Tuple.of(zip),ar->{
             if(ar.failed()) {
                 log.info("update city failed");
                 ar.cause().printStackTrace();
             }
-            else
-                update(wdata,paraNames);
-        });
+                else
+                {
+                    if(ar.result().size()==0)
+                    {
+
+                        client.preparedQuery("INSERT IGNORE INTO zdata(zip,lat,lon) Values (?,?,?)").execute(Tuple.of(zip,wdata.getLat(),wdata.getLon()),arr->{
+                            if(arr.failed()) {
+                                log.info("update city failed");
+                                arr.cause().printStackTrace();
+                            }
+                            else
+                                update(wdata,paraNames,rc);
+                        });
+                    }
+                    else
+                    {
+                             for(Row rws:ar.result())
+                             {
+                                 wdata.setLat(rws.getDouble("lat"));
+                                  wdata.setLat(rws.getDouble("lon"));
+                             }
+                             update(wdata,paraNames,rc);
+                    }
+                }
+
+         });
     }
 
 

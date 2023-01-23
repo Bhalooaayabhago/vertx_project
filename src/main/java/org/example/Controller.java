@@ -13,6 +13,9 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.codec.BodyCodec;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Controller extends AbstractVerticle
 {
     private static final Logger log=  LoggerFactory.getLogger(Register.class);
@@ -82,14 +85,18 @@ public class Controller extends AbstractVerticle
         int size=0;
         for(int i=1;i<=4;i++)
         {
-            if(qPara[i]==null)
+            if(qPara[i]!=null)
                 size++;
         }
+        log.info(size);
+        log.info(qPara[3]);
         boolean fail1=(size!=1)&&(size!=2);
         boolean fail2=(size==1)&&(qPara[3]==null&&qPara[4]==null);
         boolean fail3=(size==2)&&(qPara[1]==null||qPara[2]==null);
-        if(fail1||fail2||fail3)
-            r.response().putHeader("Content-type","application/json").end("Error in Parameters");
+        if(fail1||fail2||fail3) {
+            r.response().putHeader("Content-type", "application/json").end("{\"error\":\"incorrect parameters\"}");
+            return;
+        }
         log.info(r.queryParams().get("range"));
         if(r.queryParams().get("range")==null)
        vu.search(qPara,mdl,r);
@@ -106,15 +113,23 @@ public class Controller extends AbstractVerticle
         qPara[4]=r.queryParams().get("zip");
         if(qPara[1]==null||qPara[2]==null)
         {
-                r.response().putHeader("Content-type", "application/json").end("incorrect parameters");
+            if(qPara[3]==null&&qPara[4]==null) {
+                r.response().putHeader("Content-type", "application/json").end("{\"error\":\"incorrect parameters\"}");
                 return;
+            }
         }
-        MultiMap mp=r.queryParams();
+            MultiMap mp = r.queryParams();
+      HashMap<String,String> mpp=new HashMap<>();
+        for(String s:mp.names()) {
+            //log.info(s + " " + mp.get(s));
+            mpp.put(s, mp.get(s));
+        }
         /*for(String s:mp.names())
         {
             log.info(s+" "+mp.get(s));
         }*/
-        vu.update(qPara,mdl,mp);
+            vu.update(qPara, mdl, mpp,r);
+
     }
 
 

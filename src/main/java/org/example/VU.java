@@ -10,6 +10,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class VU
 {
@@ -63,22 +64,22 @@ public class VU
             mdl.search(Double.parseDouble(qPara[1]),Double.parseDouble(qPara[2]),r,range);
     }
 
-    public void update(String params[], model mdl, MultiMap mp)
+    public void update(String params[], model mdl, HashMap<String,String> mp,RoutingContext rc)
     {
         ArrayList<String> lis=new ArrayList<>();
         Weather_data wdata=new Weather_data();
-        for(String key:mp.names())
+        for(String key:mp.keySet())
         {
             wdata.nset(key, mp.get(key));
             log.info(key+" "+wdata.get(key));
             lis.add(key);
         }
         if(params[3]!=null)
-            mdl.updateCity(wdata,lis,params[3]);
+            mdl.updateCity(wdata,lis,params[3],rc);
         else if(params[4]!=null)
-            mdl.updateZip(wdata,lis,params[4]);
+            mdl.updateZip(wdata,lis,params[4],rc);
         else
-        mdl.update(wdata,lis);
+        mdl.update(wdata,lis,rc);
     }
 
 
