@@ -2,6 +2,8 @@ package org.example;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.core.SingleSource;
+import io.reactivex.rxjava3.functions.Function;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -31,11 +33,20 @@ public class model
         connectOptions = new MySQLConnectOptions()
                 .setPort(3306).setHost("127.0.0.1")
                 .setDatabase("weather_data")
-                .setUser("root").setPassword(System.getenv("dbpass"));
+                .setUser("root").setPassword("crystalkaran1A@");
         poolOptions = new PoolOptions().setMaxSize(10);
         client = MySQLPool.client(vertx,connectOptions, poolOptions);
     }
-    Single<AsyncResult<RowSet<Row>>> saveWeatherData(Weather_data parameter_values)
+    public SingleSource<Integer> apply(AsyncResult<RowSet<Row>> rowSetAsyncResult) throws Throwable {
+        Single<Integer> ss;
+        if(rowSetAsyncResult.failed())
+            ss=Single.just(0);
+        else {
+            ss = Single.just(1);
+        }
+        return ss;
+    }
+    checker saveWeatherData(Weather_data parameter_values,String qPara[])
     {
         log.info(parameter_values.getTemp());
         AsyncResult<RowSet<Row>> ar=client.preparedQuery("INSERT IGNORE INTO " +
@@ -54,11 +65,34 @@ public class model
                 parameter_values.getSnow_1h(),parameter_values.getSnow_3h(), parameter_values.getSunrise(),parameter_values.getSunset()
                 ,parameter_values.getTimezone(), parameter_values.getDt()));
                Single<AsyncResult<RowSet<Row>>> res=Single.just(ar);
-               return res;
+               Single<AsyncResult<RowSet<Row>>> resCity;
+               Single<AsyncResult<RowSet<Row>>> resCityCoord;
+               Single<AsyncResult<RowSet<Row>>> resZip;
+               Single<AsyncResult<RowSet<Row>>> resZipCoord;
+               Single<Integer> ii;
+               ii=res.flatMap(this::apply);
+               checker chk=new checker();
+               chk.setFlgData(ii);
+               if(qPara[3]!=null)
+               {
+                  resCity=saveCity(qPara[3],parameter_values.getLat(),parameter_values.getLon());
+                  resCityCoord=updateCityCoordinates(qPara[3],parameter_values.getLat(),parameter_values.getLon());
+                   chk.setFlgName(resCity.flatMap(this::apply));
+                   chk.setFlgCoord( resCityCoord.flatMap(this::apply));
+               }
+               else if(qPara[4]!=null)
+               {
+                     resZip=saveZip(qPara[4],parameter_values.getLat(),parameter_values.getLon());
+                     resZipCoord=updateZipCoordinates(qPara[4],parameter_values.getLat(),parameter_values.getLon());
+                    chk.setFlgName(resZip.flatMap(this::apply));
+                    chk.setFlgCoord( resZipCoord.flatMap(this::apply));
+               }
+               return chk;
     }
     Single<AsyncResult<RowSet<Row>>> saveCity(String name, double lat, double lon) {
         AsyncResult<RowSet<Row>> ar = client.preparedQuery("INSERT IGNORE INTO city(name,lat,lon) VALUES(?,?,?)").execute(Tuple.of(name, lat, lon));
         Single<AsyncResult<RowSet<Row>>> si = Single.just(ar);
+        //Single<AsyncResult<RowSet<Row>>> sii=updateCityCoordinates(name,lat,lon);
         return si;
     }
     Single<AsyncResult<RowSet<Row>>> updateCityCoordinates(String name,double lat,double lon)
@@ -71,6 +105,7 @@ public class model
     {
         AsyncResult<RowSet<Row>> ar = client.preparedQuery("INSERT IGNORE INTO zdata(zip,lat,lon) VALUES(?,?,?)").execute(Tuple.of(zip,lat,lon));
         Single<AsyncResult<RowSet<Row>>> si=Single.just(ar);
+        //Single<AsyncResult<RowSet<Row>>> sii=updateZipCoordinates(zip,lat,lon);
         return si;
     }
     Single<AsyncResult<RowSet<Row>>> updateZipCoordinates(String zip,double lat,double lon)

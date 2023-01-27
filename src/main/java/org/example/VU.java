@@ -2,6 +2,7 @@ package org.example;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.reactivex.rxjava3.core.Observable;
 import io.vertx.core.MultiMap;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -42,6 +43,20 @@ public class VU
             mainkey="1";
         httpRequest.addQueryParam("appid",mainkey);
     }
+    Observable<Integer> save(String qPara[], Weather_data responseWdata, model mdl)
+    {
+        checker chk=mdl.saveWeatherData(responseWdata, qPara);
+        Observable<Integer> xx;
+        if(chk.getFlgCoord()==null) {
+            xx=Observable.fromSingle(chk.getFlgData());
+        }
+        else
+        {
+            xx= chk.getFlgData().mergeWith(chk.getFlgCoord()).mergeWith(chk.getFlgName()).toObservable();
+        }
+        return xx;
+    }
+
     public void search(String qPara[],model mdl,RoutingContext r)
     {
         if(qPara[3]!=null)
