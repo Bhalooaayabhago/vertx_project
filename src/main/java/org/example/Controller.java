@@ -1,18 +1,22 @@
 package org.example;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.MultiMap;
-import io.vertx.core.Promise;
+import io.reactivex.rxjava3.core.Single;
+import io.vertx.core.*;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.codec.BodyCodec;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,24 +57,107 @@ public class Controller extends AbstractVerticle
         boolean fail2=size==1&&(qPara[3]==null&&qPara[4]==null);
         boolean fail3=size==2&&(qPara[1]==null||qPara[2]==null);
         if(fail1||fail2||fail3) {
-            r.response().putHeader("Content-type", "application/json").end("Error in Parameters");
+            r.response().putHeader("Content-type", "application/json").end("{\"Error\":\"Error in Parameters\"");
             return;
         }
         vu.sendQuery(qPara,r,httpRequest);
         Weather_data responseWdata=new Weather_data();
-        httpRequest.send(reply-> {
+        httpRequest.send(reply->
+        {
             if (reply.succeeded())
             {
-                r.response().putHeader("Content-Type", "appliaction/json").end(reply.result().body().toString());
+                //r.response().putHeader("Content-Type", "application/json").end(reply.result().body().toString());
                 JsonObject response = reply.result().body();
                 responseWdata.extractFromJson(response);
-                mdl.saveWeatherData(responseWdata);
-                if (qPara[3]!=null)
-                    mdl.saveCity(qPara[3], responseWdata.getLat(), responseWdata.getLon());
-                if (qPara[4]!=null)
-                    mdl.saveZip(qPara[4], responseWdata.getLat(), responseWdata.getLon());
-            } else {
-                r.response().putHeader("Content-Type", "appliaction/json").end("Could not retrieve parameter value incorrect/not connected to internet");
+                Single<AsyncResult<RowSet<Row>>> res=mdl.saveWeatherData(responseWdata);
+                r.response().setChunked(true);
+                r.response().putHeader("Content-Type","text/plain");
+                res.subscribe(ar->
+                {
+                    log.info(ar.failed());
+                    if(ar.failed()!=true)
+                    {
+                        r.response().write("Save weather data succeeded\n");
+                        log.info("Save weather data succeeded");
+                        Field flds[]=Weather_data.class.getDeclaredFields();
+                        log.info(flds.length);
+                        ArrayList<String> lis=new ArrayList<>();
+                        for(Field f:flds)
+                        {
+                            //log.info(f.getName());
+                            lis.add(f.getName());
+                        }
+                        mdl.update(responseWdata,lis,null);
+                        if (qPara[3]!=null) {
+                            Single<AsyncResult<RowSet<Row>>> resCity=mdl.saveCity(qPara[3], responseWdata.getLat(), responseWdata.getLon());
+                            resCity.subscribe(arr-> {
+                                if (arr.failed()) {
+                                    r.response().end("Save City Failed\n");
+                                    log.info("Save City Failed");
+                                    arr.cause().printStackTrace();
+                                }
+                                else{
+                                    r.response().write("Save City Successful\n");
+                                    log.info("Save City Successful");Single<AsyncResult<RowSet<Row>>>
+                                    resCityUpd=mdl.updateCityCoordinates(qPara[3], responseWdata.getLat(),responseWdata.getLon());
+                                    resCityUpd.subscribe(ares->{
+                                        if(ares.succeeded()) {
+                                            r.response().end("Update city coordinates succeeded\n");
+                                            log.info("Update city coordinates succeeded");
+                                        }
+                                        else {
+                                            r.response().end("Update city coordinates failed\n");
+                                            log.info("Update city coordinates failed");
+                                            ares.cause().printStackTrace();
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        else if (qPara[4]!=null) {
+                            Single<AsyncResult<RowSet<Row>>> resCity=mdl.saveZip(qPara[4], responseWdata.getLat(), responseWdata.getLon());
+                            resCity.subscribe(arr-> {
+                                if (arr.failed()) {
+                                    r.response().end("Save Zip Failed\n");
+                                    log.info("Save Zip Failed");
+                                    arr.cause().printStackTrace();
+                                }
+                                else{
+                                    r.response().write("Save Zip Successful\n");
+                                    log.info("Save Zip Successful");
+                                    Single<AsyncResult<RowSet<Row>>> resCityUpd=mdl.updateCityCoordinates(qPara[4], responseWdata.getLat(),responseWdata.getLon());
+                                    resCityUpd.subscribe(ares->{
+                                        if(ares.succeeded()) {
+                                            r.response().end("Update Zip coordinates succeeded\n");
+                                            log.info("Update Zip coordinates succeeded");
+                                        }
+                                        else {
+                                            r.response().end("Update Zip coordinates failed\n");
+                                            log.info("Update Zip coordinates failed");
+                                            ares.cause().printStackTrace();
+                                        }
+                                    });
+                                }
+                            });
+
+                        }
+                        else
+                            r.response().end();
+                    }
+                    else
+                    {
+                        r.response().end("Save weather data failed\n");
+                        log.info("Save weather data failed");
+                        ar.cause().printStackTrace();
+                    }
+                });
+                /*Single<RowSet<Row>> t = client.dbQuery();
+                t.map();
+                t.flatMap();*/
+            }
+            else
+            {
+                r.response().putHeader("Content-Type", "application/json").end("{\"Error\":\"Could not retrieve parameter value incorrect/not connected to internet\"");
             }
         });
     }
@@ -131,6 +218,5 @@ public class Controller extends AbstractVerticle
             vu.update(qPara, mdl, mpp,r);
 
     }
-
 
 }

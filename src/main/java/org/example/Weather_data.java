@@ -257,45 +257,45 @@ public class Weather_data
         base=job.getString("base");
         JsonObject Main=job.getJsonObject("main");
         if(Main!=null) {
-            temp = Main.getDouble("temp");
-            feel_like = Main.getDouble("feels_like");
-            temp_min = Main.getDouble("temp_min");
-            temp_max = Main.getDouble("temp_max");
-            pressure = Main.getDouble("pressure");
-            humidity = Main.getDouble("humidity");
+            temp = Main.getDouble("temp",0.0);
+            feel_like = Main.getDouble("feels_like",0.0);
+            temp_min = Main.getDouble("temp_min",0.0);
+            temp_max = Main.getDouble("temp_max",0.0);
+            pressure = Main.getDouble("pressure",0.0);
+            humidity = Main.getDouble("humidity",0.0);
             if(Main.getDouble("sea_level")!=null)
-                sea_level = Main.getDouble("sea_level");
+                sea_level = Main.getDouble("sea_level",0.0);
             if(Main.getDouble("grnd_level")!=null)
-                grnd_level = Main.getDouble("grnd_level");
+                grnd_level = Main.getDouble("grnd_level",0.0);
         }
 
-         visibility=job.getDouble("visibility");
+         visibility=job.getDouble("visibility",0.0);
 
         JsonObject wind=job.getJsonObject("wind");
         if(wind!=null) {
             if(wind.getDouble("speed")!=null)
-                wind_speed = wind.getDouble("speed");
+                wind_speed = wind.getDouble("speed",0.0);
             if(wind.getDouble("deg")!=null)
-                wind_deg = wind.getDouble("deg");
+                wind_deg = wind.getDouble("deg",0.0);
 
             if(wind.getDouble("gust")!=null)
-                wind_gust = wind.getDouble("gust");
+                wind_gust = wind.getDouble("gust",0.0);
         }
 
         JsonObject clouds=job.getJsonObject("clouds");
         if(clouds!=null)
-            clouds_all = clouds.getDouble("all");
+            clouds_all = clouds.getDouble("all",0.0);
 
         JsonObject rain=job.getJsonObject("rain");
         if(rain!=null) {
-            rain_1h = rain.getDouble("1h");
-            rain_3h = rain.getDouble("3h");
+            rain_1h = rain.getDouble("1h",0.0);
+            rain_3h = rain.getDouble("3h",0.0);
         }
 
         JsonObject snow=job.getJsonObject("snow");
         if(snow!=null) {
-            snow_1h = snow.getDouble("1h");
-            snow_3h = snow.getDouble("3h");
+            snow_1h = snow.getDouble("1h",0.0);
+            snow_3h = snow.getDouble("3h",0.0);
         }
 
 

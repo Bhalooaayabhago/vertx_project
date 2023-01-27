@@ -26,9 +26,6 @@ public class VU
             flag=0;
         switch(flag)
         {
-            case -1:
-                r.response().putHeader("Content-Type","application/json").end("Error in Parameters");
-                break;
             case 0:
                 httpRequest.addQueryParam("lat", qPara[1] + "");
                 httpRequest.addQueryParam("lon", qPara[2] + "");

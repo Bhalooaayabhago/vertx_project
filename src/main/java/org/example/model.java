@@ -1,6 +1,9 @@
 package org.example;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.reactivex.rxjava3.core.Single;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -9,6 +12,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.mysqlclient.MySQLConnectOptions;
 import io.vertx.mysqlclient.MySQLPool;
+import io.vertx.rxjava3.SingleHelper;
 import io.vertx.sqlclient.*;
 import org.example.Register;
 
@@ -23,18 +27,18 @@ public class model
     SqlClient client;
     model(Vertx vertx)
     {
+        log.info(System.getenv("dbpass"));
         connectOptions = new MySQLConnectOptions()
                 .setPort(3306).setHost("127.0.0.1")
                 .setDatabase("weather_data")
                 .setUser("root").setPassword(System.getenv("dbpass"));
-        log.info(System.getenv("dbpass"));
         poolOptions = new PoolOptions().setMaxSize(10);
         client = MySQLPool.client(vertx,connectOptions, poolOptions);
     }
-    void saveWeatherData(Weather_data parameter_values)
+    Single<AsyncResult<RowSet<Row>>> saveWeatherData(Weather_data parameter_values)
     {
         log.info(parameter_values.getTemp());
-        client.preparedQuery("INSERT IGNORE INTO " +
+        AsyncResult<RowSet<Row>> ar=client.preparedQuery("INSERT IGNORE INTO " +
                 "Data(lon,lat,weather_id,weather_main,weather_description," +
                 "weather_icon,base,temp,feel_like,temp_min,temp_max," +
                 "pressure,humidity,sea_level,grnd_level,visibility,wind_speed,wind_deg,wind_gust" +
@@ -48,80 +52,32 @@ public class model
                 parameter_values.getHumidity(),parameter_values.getSea_level(),parameter_values.getGrnd_level(),parameter_values.getVisibility(),
                 parameter_values.getWind_speed(),parameter_values.getWind_deg(),parameter_values.getWind_gust(),parameter_values.getClouds_all(),parameter_values.getRain_1h(),parameter_values.getRain_3h(),
                 parameter_values.getSnow_1h(),parameter_values.getSnow_3h(), parameter_values.getSunrise(),parameter_values.getSunset()
-                ,parameter_values.getTimezone(), parameter_values.getDt()),
-                ar->{
-            if(ar.succeeded()) {
-                log.info("Save weather data succeeded");
-                Field flds[]=Weather_data.class.getDeclaredFields();
-                log.info(flds.length);
-                ArrayList<String> lis=new ArrayList<>();
-                for(Field f:flds) {
-                   log.info(f.getName());
-                   lis.add(f.getName());
-               }
-                 update(parameter_values,lis,null);
-               }
-            else {
-                log.info("Save weather data failed");
-                ar.cause().printStackTrace();
-            }
-        });
-
-
-
-
-
-
-
-
-
+                ,parameter_values.getTimezone(), parameter_values.getDt()));
+               Single<AsyncResult<RowSet<Row>>> res=Single.just(ar);
+               return res;
     }
-    void saveCity(String name,double lat,double lon)
-    {
-        client.preparedQuery("INSERT IGNORE INTO city(name,lat,lon) VALUES(?,?,?)").execute(Tuple.of(name,lat,lon),ar->{
-            if(ar.failed())
-            {
-                log.info("Save City Failed");
-                ar.cause().printStackTrace();
-            }
-            else
-            {
-                log.info("Save City Successful");
-                client.preparedQuery("UPDATE city lat=?,lon=? where name=?").execute(Tuple.of(lat,lon,name),ares->{
-                   if(ares.failed())
-                   {
-                       log.info("Update city coordinates failed");
-                       ares.cause().printStackTrace();
-                   }
-                   else
-                       log.info("Update city coordinates succeeded");
-                });
-            }
-        });
-
+    Single<AsyncResult<RowSet<Row>>> saveCity(String name, double lat, double lon) {
+        AsyncResult<RowSet<Row>> ar = client.preparedQuery("INSERT IGNORE INTO city(name,lat,lon) VALUES(?,?,?)").execute(Tuple.of(name, lat, lon));
+        Single<AsyncResult<RowSet<Row>>> si = Single.just(ar);
+        return si;
     }
-    void saveZip(String zip,double lat,double lon)
+    Single<AsyncResult<RowSet<Row>>> updateCityCoordinates(String name,double lat,double lon)
     {
-        client.preparedQuery("INSERT IGNORE INTO city(name,lat,lon) VALUES(?,?,?)").execute(Tuple.of(zip,lat,lon),ar->{
-            if(ar.failed())
-            {
-                log.info("Save Zip Failed");
-                ar.cause().printStackTrace();
-            }
-            else
-            {
-                log.info("Save Zip Successful");
-                client.preparedQuery("UPDATE zdata lat=?,lon=? where zip=?").execute(Tuple.of(lat,lon,zip),ares->{
-                   if(ares.failed())
-                   {
-                       log.info("Update zip coordinates failed");
-                       ares.cause().printStackTrace();
-                   }
-                   else
-                       log.info("Update zip coordinates succeeded");
-                });
-             }
-        });
+        AsyncResult<RowSet<Row>> ar=client.preparedQuery("UPDATE city lat=?,lon=? where name=?").execute(Tuple.of(lat,lon,name));
+        Single<AsyncResult<RowSet<Row>>> si = Single.just(ar);
+        return si;
+    }
+    Single<AsyncResult<RowSet<Row>>> saveZip(String zip, double lat, double lon)
+    {
+        AsyncResult<RowSet<Row>> ar = client.preparedQuery("INSERT IGNORE INTO zdata(zip,lat,lon) VALUES(?,?,?)").execute(Tuple.of(zip,lat,lon));
+        Single<AsyncResult<RowSet<Row>>> si=Single.just(ar);
+        return si;
+    }
+    Single<AsyncResult<RowSet<Row>>> updateZipCoordinates(String zip,double lat,double lon)
+    {
+        AsyncResult<RowSet<Row>> ar=client.preparedQuery("UPDATE zdata lat=?,lon=? where zip=?").execute(Tuple.of(lat,lon,zip));
+        Single<AsyncResult<RowSet<Row>>> si = Single.just(ar);
+        return si;
     }
     void search(double lat, double lon, RoutingContext rc)
     {
@@ -240,26 +196,28 @@ public class model
      {
          //Weather_data wdata = new Weather_data();
          client.preparedQuery("SELECT * FROM city where name=?").execute(Tuple.of(city), ar -> {
-             if (ar.failed()) {
-                 ar.cause().printStackTrace();
-                 log.info("search failed");
-                 JsonObject reply;
+             if (ar.failed())
+             {
+                   ar.cause().printStackTrace();
+                   log.info("search failed");
+                   JsonObject reply;
                    reply = new JsonObject("\"Error\":401");
-                 rc.response().putHeader("Content-Type","application/json").end("{\"Error\":401}");
+                   rc.response().putHeader("Content-Type","application/json").end("{\"Error\":401}");
              }
-             else {
-                 String ans;
-                 RowSet<Row> rx = ar.result();
-                 log.info(rx.size());
-                 double lat=-1000,lon=-1000;
-                 for (Row rr : rx)
-                 {
-                     lat= rr.getDouble("lat");
-                     lon = rr.getDouble("lon");
-                 }
-                 log.info(lat + " " + lon);
-                 search(lat,lon,rc,range);
-                 //wdata.copy(e);
+             else
+             {
+                    String ans;
+                    RowSet<Row> rx = ar.result();
+                    log.info(rx.size());
+                    double lat=-1000,lon=-1000;
+                    for (Row rr : rx)
+                    {
+                       lat= rr.getDouble("lat");
+                       lon = rr.getDouble("lon");
+                    }
+                    log.info(lat + " " + lon);
+                    search(lat,lon,rc,range);
+                    //wdata.copy(e);
              }
          });
          //return wdata;
@@ -268,25 +226,25 @@ public class model
        {
             //Weather_data wdata = new Weather_data();
            client.preparedQuery("SELECT * FROM zdata where zip=?").execute(Tuple.of(zip), ar -> {
-
-               if (ar.failed()) {
+               if (ar.failed())
+               {
                    ar.cause().printStackTrace();
                    log.info("search failed");
                    rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":401}");
                }
-               else{
-                   String ans;
+               else
+               {
                    RowSet<Row> rx = ar.result();
                    log.info(rx.size());
                    double lat = -1000, lon = -1000;
-                   for (Row rr : rx) {
+                   for (Row rr : rx)
+                   {
                        lat = rr.getDouble("lat");
                        lon = rr.getDouble("lon");
                    }
                    log.info(lat + " " + lon);
                    search(lat, lon, rc,range);
                }
-
            });
        }
        void search(double lat, double lon, RoutingContext rc,double range)
@@ -295,17 +253,19 @@ public class model
            log.info(lat+" "+lon);
            client.preparedQuery("SELECT * FROM Data where 13462*asin(sqrt(power(sin(((lat-?)*0.01745329251)/2),2)+power(sin(((lon-?)*0.01745329251)/2),2)*cos(lat)*cos(?))) <= ?").execute(Tuple.of(lat,lon,lat,range),
                    res->{
-               if(res.failed()) {
+               if(res.failed())
+               {
                    res.cause().printStackTrace();
                    log.info("Search failed");
                    JsonObject reply;
                    reply = new JsonObject("{Error:401}");
-                     rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":401}");
+                   rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":401}");
                }
                else
                {
                    RowSet<Row> rows=res.result();
-                   if(rows.size()==0) {
+                   if(rows.size()==0)
+                   {
                        log.info("No such record!");
                         rc.response().putHeader("Content-Type", "application/json").end("{\"Error\":101}");
                         return;
@@ -389,11 +349,7 @@ public class model
                  log.info("Update successful");
                  else
                      rc.response().putHeader("Content-Type","application/json").end("{\"error\":\"UPDATE failed\"}");
-
-
-
-
-                ar.cause().printStackTrace();
+                 ar.cause().printStackTrace();
             }
             else
             {
