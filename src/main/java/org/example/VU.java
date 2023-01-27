@@ -43,19 +43,19 @@ public class VU
             mainkey="1";
         httpRequest.addQueryParam("appid",mainkey);
     }
-    Observable<Integer> save(String qPara[], Weather_data responseWdata, model mdl)
-    {
-        checker chk=mdl.saveWeatherData(responseWdata, qPara);
-        Observable<Integer> xx;
-        if(chk.getFlgCoord()==null) {
-            xx=Observable.fromSingle(chk.getFlgData());
-        }
-        else
-        {
-            xx= chk.getFlgData().mergeWith(chk.getFlgCoord()).mergeWith(chk.getFlgName()).toObservable();
-        }
-        return xx;
-    }
+//    Observable<Integer> save(String qPara[], Weather_data responseWdata, model mdl)
+//    {
+//        checker chk=mdl.saveWeatherData(responseWdata, qPara);
+//        Observable<Integer> xx;
+//        if(chk.getFlgCoord()==null) {
+//            xx=Observable.fromSingle(chk.getFlgData());
+//        }
+//        else
+//        {
+//            xx= chk.getFlgData().mergeWith(chk.getFlgCoord()).mergeWith(chk.getFlgName()).toObservable();
+//        }
+//        return xx;
+//    }
 
     public void search(String qPara[],model mdl,RoutingContext r)
     {

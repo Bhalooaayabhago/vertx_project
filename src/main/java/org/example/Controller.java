@@ -70,7 +70,7 @@ public class Controller extends AbstractVerticle
                 //r.response().putHeader("Content-Type", "application/json").end(reply.result().body().toString());
                 JsonObject response = reply.result().body();
                 responseWdata.extractFromJson(response);
-                Observable<Integer> res=vu.save(qPara,responseWdata,mdl);
+                Observable<Integer> res=mdl.saveWeatherData(responseWdata,qPara);
                 Field flds[]=Weather_data.class.getDeclaredFields();
                 log.info(flds.length);
                 ArrayList<String> lis=new ArrayList<>();

@@ -1,6 +1,7 @@
 package org.example;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.core.SingleSource;
 import io.reactivex.rxjava3.functions.Function;
@@ -46,7 +47,7 @@ public class model
         }
         return ss;
     }
-    checker saveWeatherData(Weather_data parameter_values,String qPara[])
+    Observable<Integer> saveWeatherData(Weather_data parameter_values,String qPara[])
     {
         log.info(parameter_values.getTemp());
         AsyncResult<RowSet<Row>> ar=client.preparedQuery("INSERT IGNORE INTO " +
@@ -69,25 +70,26 @@ public class model
                Single<AsyncResult<RowSet<Row>>> resCityCoord;
                Single<AsyncResult<RowSet<Row>>> resZip;
                Single<AsyncResult<RowSet<Row>>> resZipCoord;
+               Observable<Integer> ress;
                Single<Integer> ii;
                ii=res.flatMap(this::apply);
-               checker chk=new checker();
-               chk.setFlgData(ii);
+               //checker chk=new checker();
+               ress=Observable.fromSingle(ii);
                if(qPara[3]!=null)
                {
                   resCity=saveCity(qPara[3],parameter_values.getLat(),parameter_values.getLon());
                   resCityCoord=updateCityCoordinates(qPara[3],parameter_values.getLat(),parameter_values.getLon());
-                   chk.setFlgName(resCity.flatMap(this::apply));
-                   chk.setFlgCoord( resCityCoord.flatMap(this::apply));
+                   ress=ress.mergeWith(resCity.flatMap(this::apply));
+                   ress=ress.mergeWith( resCityCoord.flatMap(this::apply));
                }
                else if(qPara[4]!=null)
                {
                      resZip=saveZip(qPara[4],parameter_values.getLat(),parameter_values.getLon());
                      resZipCoord=updateZipCoordinates(qPara[4],parameter_values.getLat(),parameter_values.getLon());
-                    chk.setFlgName(resZip.flatMap(this::apply));
-                    chk.setFlgCoord( resZipCoord.flatMap(this::apply));
+                   ress=ress.mergeWith(resZip.flatMap(this::apply));
+                   ress=ress.mergeWith( resZipCoord.flatMap(this::apply));
                }
-               return chk;
+               return ress;
     }
     Single<AsyncResult<RowSet<Row>>> saveCity(String name, double lat, double lon) {
         AsyncResult<RowSet<Row>> ar = client.preparedQuery("INSERT IGNORE INTO city(name,lat,lon) VALUES(?,?,?)").execute(Tuple.of(name, lat, lon));
