@@ -33,7 +33,7 @@ public class model
         connectOptions = new MySQLConnectOptions()
                 .setPort(3306).setHost("127.0.0.1")
                 .setDatabase("weather_data")
-                .setUser("root").setPassword("crystalkaran1A@");
+                .setUser("root").setPassword(System.getenv("dbpass"));
         poolOptions = new PoolOptions().setMaxSize(10);
        // io.vertx.rxjava3.mysqlclient.MySQLPool.pool((io.vertx.rxjava3.core.Vertx) vertx,connectOptions,poolOptions);
         client= MySQLPool.pool(vertx,connectOptions,poolOptions);
