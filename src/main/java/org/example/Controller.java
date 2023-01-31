@@ -1,5 +1,6 @@
 package org.example;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.*;
@@ -30,7 +31,8 @@ public class Controller extends AbstractVerticle
     VU vu;
     public void start(Promise<Void> p)
     {
-        mdl=new model(vertx);
+
+       mdl=new model(vertx);
         vu=new VU();
         Router r=Router.router(vertx);
         wb=WebClient.create(vertx);
@@ -38,6 +40,7 @@ public class Controller extends AbstractVerticle
         r.route("/search").handler(this::srch);
         r.route("/update").handler(this::updt);
         vertx.createHttpServer().requestHandler(r).listen(8080).onSuccess(ok->{log.info("Success");p.complete();}).onFailure(p::fail);
+
     }
     public void gt(RoutingContext r)
     {
@@ -79,8 +82,9 @@ public class Controller extends AbstractVerticle
                     //log.info(f.getName());
                     lis.add(f.getName());
                 }
-                mdl.update(responseWdata,lis,null);
+                Observable<Integer> res2=mdl.update(responseWdata,lis);
                // r.response().setChunked(true);
+                res=res.mergeWith(res2);
                 r.response().putHeader("Content-Type","text/plain");
                 res.subscribe(ar->
                 {
@@ -124,10 +128,31 @@ public class Controller extends AbstractVerticle
             return;
         }
         log.info(r.queryParams().get("range"));
+        Single<Weather_data> obs;
         if(r.queryParams().get("range")==null)
-       vu.search(qPara,mdl,r);
+       obs=vu.search(qPara,mdl);
         else
-            vu.search(qPara,mdl,r,Double.parseDouble(r.queryParams().get("range")));
+            obs=vu.search(qPara,mdl,Double.parseDouble(r.queryParams().get("range")));
+        obs.subscribe(res->{
+            if(res.getLat()==-1000)
+            {
+                if(res.getLon()==-1000)
+                {
+                    log.info("Query Fire error");
+                    r.response().putHeader("Content-type","application/json").end("{\"Error\":\"Db error\"}");
+                }
+                else
+                {
+                    log.info("Not Found error");
+                    r.response().putHeader("Content-type","application/json").end("{\"Error\":\"Not Found\"}");
+                }
+            }
+            else
+            {
+                ObjectMapper mpr=new ObjectMapper();
+                r.response().putHeader("Content-type","application/json").end(mpr.writeValueAsString(res).toString());
+            }
+        },Throwable::printStackTrace);
     }
     public void updt(RoutingContext r)
     {
@@ -154,7 +179,19 @@ public class Controller extends AbstractVerticle
         {
             log.info(s+" "+mp.get(s));
         }*/
+        Observable<Integer> updObs=
             vu.update(qPara, mdl, mpp,r);
+        updObs.subscribe(obs->{
+            if(obs==0)
+                r.response().putHeader("Content-type","application/json").end("{\"Error\":\"Update failed\"}");
+        },Throwable::printStackTrace,()->{
+            if(r.response().ended())
+            return;
+            else
+            {
+                r.response().putHeader("Content-type","application/json").end("{\"Success\":\"Update Successful\"}");
+            }
+        });
 
     }
 

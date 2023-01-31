@@ -3,6 +3,7 @@ package org.example;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.MultiMap;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -57,26 +58,30 @@ public class VU
 //        return xx;
 //    }
 
-    public void search(String qPara[],model mdl,RoutingContext r)
+    public Single<Weather_data> search(String qPara[], model mdl)
     {
+        Single<Weather_data> obs;
         if(qPara[3]!=null)
-              mdl.searchByCity(qPara[3],r);
+              obs=mdl.searchByCity(qPara[3]);
         else if(qPara[4]!=null)
-            mdl.searchByZip(qPara[4],r);
+            obs=mdl.searchByZip(qPara[4]);
         else
-            mdl.search(Double.parseDouble(qPara[1]),Double.parseDouble(qPara[2]),r);
+            obs=mdl.search(Double.parseDouble(qPara[1]),Double.parseDouble(qPara[2]));
+        return obs;
     }
-    public void search(String qPara[],model mdl,RoutingContext r,double range)
+    public Single<Weather_data> search(String qPara[],model mdl,double range)
     {
+        Single<Weather_data> obs;
         if(qPara[3]!=null)
-            mdl.searchByCity(qPara[3],r,range);
+            obs=mdl.searchByCity(qPara[3],range);
         else if(qPara[4]!=null)
-            mdl.searchByZip(qPara[4],r,range);
+            obs=mdl.searchByZip(qPara[4],range);
         else
-            mdl.search(Double.parseDouble(qPara[1]),Double.parseDouble(qPara[2]),r,range);
+            obs=mdl.search(Double.parseDouble(qPara[1]),Double.parseDouble(qPara[2]),range);
+        return obs;
     }
 
-    public void update(String params[], model mdl, HashMap<String,String> mp,RoutingContext rc)
+    public Observable<Integer> update(String params[], model mdl, HashMap<String,String> mp,RoutingContext rc)
     {
         ArrayList<String> lis=new ArrayList<>();
         Weather_data wdata=new Weather_data();
@@ -87,11 +92,11 @@ public class VU
             lis.add(key);
         }
         if(params[3]!=null)
-            mdl.updateCity(wdata,lis,params[3],rc);
+            return mdl.updateCity(wdata,lis,params[3]);
         else if(params[4]!=null)
-            mdl.updateZip(wdata,lis,params[4],rc);
+            return mdl.updateZip(wdata,lis,params[4]);
         else
-        mdl.update(wdata,lis,rc);
+        return mdl.update(wdata,lis);
     }
 
 
