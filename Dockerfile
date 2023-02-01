@@ -1,10 +1,11 @@
-FROM vertx/vertx4
-ENV VERTICLE_NAME org.example.App.class
-ENV VERTICLE_HOME /home/ideaProjects/untitled1/classes/org/example
-ENV VERTICLE_FILE target/-1.0-SNAPSHOT.jar
+FROM openjdk:17-slim
+ARG dbpass
+ARG api_key
+ENV api_key $api_key
+ENV dbpass $dbpass
+ENV VERTICLE_HOME /home/ideaProjects/untitled1/
 RUN mkdir -p /home/ideaProjects/untitled1/
 COPY * /home/ideaProjects/untitled1/
 WORKDIR $VERTICLE_HOME
 EXPOSE 8080
-ENTRYPOINT ["sh", "-c"]
-CMD ["exec vertx run $VERTICLE_NAME -cp $VERTICLE_HOME/*"]
+CMD ["java","-jar","untitled1-1.0-SNAPSHOT-fat.jar"]

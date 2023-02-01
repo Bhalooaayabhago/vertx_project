@@ -61,7 +61,7 @@ public class Controller extends AbstractVerticle
         boolean fail2=size==1&&(qPara[3]==null&&qPara[4]==null);
         boolean fail3=size==2&&(qPara[1]==null||qPara[2]==null);
         if(fail1||fail2||fail3) {
-            r.response().putHeader("Content-type", "application/json").end("{\"Error\":\"Error in Parameters\"");
+            r.response().putHeader("Content-type", "application/json").end("{\"Error\":\"Error in Parameters\"}");
             return;
         }
         vu.sendQuery(qPara,r,httpRequest);
@@ -100,7 +100,7 @@ public class Controller extends AbstractVerticle
             }
             else
             {
-                r.response().putHeader("Content-Type", "application/json").end("{\"Error\":\"Could not retrieve parameter value incorrect/not connected to internet\"");
+                r.response().putHeader("Content-Type", "application/json").end("{\"Error\":\"Could not retrieve parameter value incorrect/not connected to internet\"}");
             }
         });
     }
